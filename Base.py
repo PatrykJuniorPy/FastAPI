@@ -1,9 +1,16 @@
 from fastapi import FastAPI, Path, Query, HTTPException, status
 from typing import Optional
 from pydantic import BaseModel
+from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI ()
 
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+templates = Jinja2Templates(directory="templates")
 
 class Item (BaseModel):
     name: str
@@ -19,7 +26,6 @@ class UpdateItem (BaseModel):
 
 bag = {}
 
-
 # Path parameters adding imported Path as below
 @app.get ("/get-item/{item_id}")
 def get_item (item_id: int = Path (None, description="The item id'like to share with you", gt=0)):
@@ -34,6 +40,11 @@ def get_item (name: str = Query (None, title="Name", description="Name of item",
         if bag[item_id].name == name:
             return bag[item_id]
     raise HTTPException (status_code=404, detail="Item name not found")
+
+
+@app.get("/items/{id}", response_class=HTMLResponse)
+def read_item(request: Request, id: str):
+    return templates.TemplateResponse("item.html", {"request": request, "id": id})
 
 
 # request body & post method
@@ -68,3 +79,4 @@ def delete_item (item_id: int = Query (..., description="The Id of the item to d
         raise HTTPException (status_code=400, detail="Item not found")
     del bag[item_id]
     return {"Succes": "item deleted"}
+
